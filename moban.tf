@@ -19,3 +19,19 @@ provider "alicloud" {
         secret_key = "amvPoLc2PTnxLqfoUU7EGT2QenAtcr"
         region = "cn-hangzhou"
 }
+provider_installation {
+    // 配置 network mirror 规则
+    network_mirror {    
+        // 提供 network mirror 服务的地址
+        url = "https://registry.cloudiac.org/v1/mirrors/providers/"
+        // hostname 为 registry.cloudiac.org 的 provider 查询不走 mirror
+        exclude = ["registry.cloudiac.org/*/*"]
+    }
+
+    direct {
+        // hostname 为 registry.cloudiac.org 的 provider 可以直接下载 
+        include = ["registry.cloudiac.org/*/*"]
+        // 其他 hostname 下的 provider 只能走 network mirror 
+        exclude = ["*/*/*"]
+    }
+}
