@@ -1,119 +1,150 @@
-
 ROSTemplateFormatVersion: '2015-09-01'
+Description:
+  zh-cn: 在1个ECS实例上部署 LNMP（Linux+Nginx+MySQL+PHP）堆栈；模板仅支持 CentOS-7。
+  en: >-
+    Deploy LNMP(Linux+Nginx+MySQL+PHP) stack on 1 ECS instance. *** WARNING ***
+    Only support CentOS-7.
 Parameters:
-  NginxDownloadUrl:
-    Type: String
-    Description:
-      zh-cn: nginx-*.rpm源下载路径
-      en: nginx-.rpm source download path.
+  SystemDiskCategory:
+    Default: cloud_ssd
     Label:
-      zh-cn: Nginx源
-      en: Nginx Source
-    Default: >-
-      http://nginx.org/packages/centos/7/noarch/RPMS/nginx-release-centos-7-0.el7.ngx.noarch.rpm
-  DBPassword:
-    NoEcho: true
-    Type: String
-    Label:
-      zh-cn: 数据库密码
-      en: DB Password
-    Description:
-      zh-cn: MySQL密码，数据库访问大小写字母、数字和下划线（_），8-32个字符
-      en: >-
-        The MySQL password, consisting of letters, numbers, and underline(_), 8
-        to 32 characters in length
-    ConstraintDescription:
-      en: >-
-        [8, 32] characters consist of alphanumeric characters, hyphen and
-        underline
-      zh-cn: '[8, 32] 个字符由字母数字字符、连字符和下划线组成'
-    MinLength: 8
-    MaxLength: 32
-  ZoneId:
+      zh-cn: 系统磁盘类型
+      en: System Disk Category
     Type: String
     Description:
-      en: >-
-        Availability Zone ID,<br><b>note： <font color='blue'>Before selecting,
-        please confirm that the Availability Zone supports the specification of
-        creating ECS resources</font></b>
       zh-cn: >-
-        可用区ID。<br><b>注： <font
-        color='blue'>选择可用区前请确认该可用区是否支持创建ECS资源的规格</font></b>
-    AssociationProperty: 'ALIYUN::ECS::Instance::ZoneId'
-    Label:
-      zh-cn: 可用区ID
-      en: Available Zone ID
-  ImageId:
+        <font color='blue'><b>可选值：</b></font><br>[cloud_efficiency: <font
+        color='green'>高效云盘</font>]<br>[cloud_ssd: <font
+        color='green'>SSD云盘</font>]<br>[cloud_essd: <font
+        color='green'>ESSD云盘</font>]<br>[cloud: <font
+        color='green'>普通云盘</font>]<br>[ephemeral_ssd: <font
+        color='green'>本地SSD盘</font>]
+      en: >-
+        <font color='blue'><b>Optional values:</b></font><br>[cloud_efficiency:
+        <font color='green'>Efficient Cloud Disk</font>]<br>[cloud_ssd: <font
+        color='green'>SSD Cloud Disk</font>]<br>[cloud_essd: <font
+        color='green'>ESSD Cloud Disk</font>]<br>[cloud: <font
+        color='green'>Cloud Disk</font>]<br>[ephemeral_ssd: <font
+        color='green'>Local SSD Cloud Disk</font>]
+    AllowedValues:
+      - cloud_efficiency
+      - cloud_ssd
+      - cloud
+      - cloud_essd
+      - ephemeral_ssd
+  InstancePassword:
     Type: String
     Description:
+      zh-cn: '长度8-30，必须包含大写字母、小写字母、数字、特殊符号三个；<br>特殊字符包括：()`~!@#$%^&*_-+=|{}[]:;''<>,.?/'
       en: >-
-        Server instance Image ID. see detail: <b><a
-        href='https://www.alibabacloud.com/help/doc-detail/112977.html'
-        target='_blank'><font color='blue'>Find the mirror</font></a></b>
+        The 8-30 long login password of instance, consists of the uppercase,
+        lowercase letter and number. <br> special characters
+        include()`~!@#$%^&*_-+=|{}[]:;'<>,.?/
+    MinLength: '8'
+    Label:
+      zh-cn: 实例密码
+      en: Instance Password
+    AllowedPattern: '[0-9A-Za-z\_\-&:;''<>,=%`~!@#\(\)\$\^\*\+\|\{\}\[\]\.\?\/]+$'
+    NoEcho: true
+    MaxLength: '30'
+    ConstraintDescription:
+      zh-cn: '长度8-30，必须包含大写字母、小写字母、数字、特殊符号三种；特殊字符包括：()`~!@#$%^&*_-+=|{}[]:;'' <>,.?/'
+      en: >-
+        Length 8-30, must contain upper case letters, lower case letters,
+        Numbers, special symbols three; special characters include:
+        ()`~!@#$%^&*_-+=|{}[]:;'<>,.?/
+  ImageId:
+    Default: centos_7
+    Type: String
+    Description:
       zh-cn: >-
         服务器镜像，详见：<b><a
         href='https://help.aliyun.com/document_detail/112977.html'
         target='_blank'><font color='blue'>查找镜像</font></a></b>
+      en: >-
+        Server instance Image ID. see detail: <b><a
+        href='https://www.alibabacloud.com/help/doc-detail/112977.html'
+        target='_blank'><font color='blue'>Find the mirror</font></a></b>
     Label:
       zh-cn: 镜像ID
       en: Image ID
-    Default: centos_7
   DBName:
-    Type: String
+    ConstraintDescription:
+      zh-cn: 由 2 到 64 个小写字母组成，下划线。必须以字母开头，以字母数字字符结尾
+      en: >-
+        Consist of 2 to 64 characters of lowercase letters, underline. Must
+        begin with a letter and be end with an alphanumeric character
     Description:
       zh-cn: 'MySQL数据库名称，[1, 64] 英文或中文字符，必须以字母或中文开头，可以包含数字、下划线或“.”、“-”。'
       en: >-
         MySQL database name, [1, 64] English or Chinese characters, must start
         with a letter or Chinese in size, can contain numbers, '_' or '.', '-'.
-    ConstraintDescription:
-      en: >-
-        Consist of 2 to 64 characters of lowercase letters, underline. Must
-        begin with a letter and be end with an alphanumeric character
-      zh-cn: 由 2 到 64 个小写字母组成，下划线。必须以字母开头，以字母数字字符结尾
+    Default: MyDatabase
+    MinLength: 1
     Label:
       zh-cn: 数据库名称
       en: DB Name
-    Default: MyDatabase
     MaxLength: 64
-    MinLength: 1
-  DBUser:
     Type: String
+  DBPassword:
+    Type: String
+    Description:
+      zh-cn: MySQL密码，数据库访问大小写字母、数字和下划线（_），8-32个字符
+      en: >-
+        The MySQL password, consisting of letters, numbers, and underline(_), 8
+        to 32 characters in length
+    MinLength: 8
+    Label:
+      zh-cn: 数据库密码
+      en: DB Password
+    NoEcho: true
+    MaxLength: 32
+    ConstraintDescription:
+      zh-cn: '[8, 32] 个字符由字母数字字符、连字符和下划线组成'
+      en: >-
+        [8, 32] characters consist of alphanumeric characters, hyphen and
+        underline
+  DBUser:
+    ConstraintDescription:
+      zh-cn: 由 2 到 16 个小写字母组成，下划线。必须以字母开头，以字母数字字符结尾
+      en: >-
+        Consist of 2 to 16 characters of lowercase letters, underline. Must
+        begin with a letter and be end with an alphanumeric character
     Description:
       zh-cn: MySQL数据库访问的用户名。它由小写字母、数字和下划线（_）组成，以字母开头。不超过16个字符。
       en: >-
         Username for MySQL database access.It consists of lowercase letters,
         numbers and underscores (_), and begins with a letter. Not longer than
         16 characters.
-    ConstraintDescription:
-      en: >-
-        Consist of 2 to 16 characters of lowercase letters, underline. Must
-        begin with a letter and be end with an alphanumeric character
-      zh-cn: 由 2 到 16 个小写字母组成，下划线。必须以字母开头，以字母数字字符结尾
+    Default: DefaultUser
+    MinLength: 2
     Label:
       zh-cn: 数据库用户名
       en: DB Username
     MaxLength: 16
-    MinLength: 2
-    Default: DefaultUser
+    Type: String
   DBRootPassword:
-    NoEcho: true
     Type: String
     Description:
       zh-cn: 'MySQL的root密码, 由字母、数字、下划线（_）组成，长度为8~32个字符'
       en: >-
         Root password for MySQL, consisting of letters, numbers, and
         underline(_), 8 to 32 characters in length
+    MinLength: 8
     Label:
       zh-cn: 数据库root用户密码
       en: DB Root Password
+    NoEcho: true
+    MaxLength: 32
     ConstraintDescription:
       zh-cn: 由字母、数字和下划线(_)组成，长度为8到32个字符
       en: >-
         Consisting of letters, numbers, and underline(_), 8 to 32 characters in
         length
-    MinLength: 8
-    MaxLength: 32
   InstanceType:
+    AssociationProperty: 'ALIYUN::ECS::Instance::InstanceType'
+    AssociationPropertyMetadata:
+      ZoneId: ZoneId
     Type: String
     Description:
       zh-cn: >-
@@ -132,83 +163,81 @@ Parameters:
     Label:
       zh-cn: 实例类型
       en: Instance Type
-    AssociationProperty: 'ALIYUN::ECS::Instance::InstanceType'
-    AssociationPropertyMetadata:
-      ZoneId: ZoneId
-  SystemDiskCategory:
+  ZoneId:
+    AssociationProperty: 'ALIYUN::ECS::Instance::ZoneId'
     Type: String
     Description:
-      en: >-
-        <font color='blue'><b>Optional values:</b></font><br>[cloud_efficiency:
-        <font color='green'>Efficient Cloud Disk</font>]<br>[cloud_ssd: <font
-        color='green'>SSD Cloud Disk</font>]<br>[cloud_essd: <font
-        color='green'>ESSD Cloud Disk</font>]<br>[cloud: <font
-        color='green'>Cloud Disk</font>]<br>[ephemeral_ssd: <font
-        color='green'>Local SSD Cloud Disk</font>]
       zh-cn: >-
-        <font color='blue'><b>可选值：</b></font><br>[cloud_efficiency: <font
-        color='green'>高效云盘</font>]<br>[cloud_ssd: <font
-        color='green'>SSD云盘</font>]<br>[cloud_essd: <font
-        color='green'>ESSD云盘</font>]<br>[cloud: <font
-        color='green'>普通云盘</font>]<br>[ephemeral_ssd: <font
-        color='green'>本地SSD盘</font>]
+        可用区ID。<br><b>注： <font
+        color='blue'>选择可用区前请确认该可用区是否支持创建ECS资源的规格</font></b>
+      en: >-
+        Availability Zone ID,<br><b>note： <font color='blue'>Before selecting,
+        please confirm that the Availability Zone supports the specification of
+        creating ECS resources</font></b>
     Label:
-      zh-cn: 系统磁盘类型
-      en: System Disk Category
-    Default: cloud_ssd
-    AllowedValues:
-      - cloud_efficiency
-      - cloud_ssd
-      - cloud
-      - cloud_essd
-      - ephemeral_ssd
-  InstancePassword:
-    NoEcho: true
+      zh-cn: 可用区ID
+      en: Available Zone ID
+  NginxDownloadUrl:
+    Default: >-
+      http://nginx.org/packages/centos/7/noarch/RPMS/nginx-release-centos-7-0.el7.ngx.noarch.rpm
     Type: String
     Description:
-      zh-cn: '长度8-30，必须包含大写字母、小写字母、数字、特殊符号三个；<br>特殊字符包括：()`~!@#$%^&*_-+=|{}[]:;''<>,.?/'
-      en: >-
-        The 8-30 long login password of instance, consists of the uppercase,
-        lowercase letter and number. <br> special characters
-        include()`~!@#$%^&*_-+=|{}[]:;'<>,.?/
-    ConstraintDescription:
-      en: >-
-        Length 8-30, must contain upper case letters, lower case letters,
-        Numbers, special symbols three; special characters include:
-        ()`~!@#$%^&*_-+=|{}[]:;'<>,.?/
-      zh-cn: '长度8-30，必须包含大写字母、小写字母、数字、特殊符号三种；特殊字符包括：()`~!@#$%^&*_-+=|{}[]:;'' <>,.?/'
-    AllowedPattern: '[0-9A-Za-z\_\-&:;''<>,=%`~!@#\(\)\$\^\*\+\|\{\}\[\]\.\?\/]+$'
+      zh-cn: nginx-*.rpm源下载路径
+      en: nginx-.rpm source download path.
     Label:
-      zh-cn: 实例密码
-      en: Instance Password
-    MinLength: '8'
-    MaxLength: '30'
+      zh-cn: Nginx源
+      en: Nginx Source
+Outputs:
+  NginxWebsiteURL:
+    Description: URL for newly created Nginx home page.
+    Value:
+      'Fn::Join':
+        - ''
+        - - 'http://'
+          - 'Fn::GetAtt':
+              - WebServer
+              - PublicIp
+          - ':80/test.php'
 Resources:
-  EcsVSwitch:
-    Type: 'ALIYUN::ECS::VSwitch'
+  EcsSecurityGroup:
+    Type: 'ALIYUN::ECS::SecurityGroup'
     Properties:
+      SecurityGroupIngress:
+        - Priority: 1
+          PortRange: '-1/-1'
+          NicType: intranet
+          SourceCidrIp: 0.0.0.0/0
+          IpProtocol: all
       VpcId:
         Ref: EcsVpc
-      ZoneId:
-        Ref: ZoneId
-      CidrBlock: 192.168.1.0/24
+      SecurityGroupEgress:
+        - Priority: 1
+          PortRange: '-1/-1'
+          IpProtocol: all
+          NicType: intranet
+          DestCidrIp: 0.0.0.0/0
     Metadata:
       'ALIYUN::ROS::Designer':
-        id: dae2dd74-1b30-4975-8b70-4877f4c2d9d3
+        id: 7a621d9a-c803-4121-ba09-30dc9a417423
   WebServerConditionHandle:
     Type: 'ALIYUN::ROS::WaitConditionHandle'
     Metadata:
       'ALIYUN::ROS::Designer':
         id: ec1625d7-b79b-496d-ba3a-5c46be0c1181
+  EcsVSwitch:
+    Type: 'ALIYUN::ECS::VSwitch'
+    Properties:
+      VpcId:
+        Ref: EcsVpc
+      CidrBlock: 192.168.1.0/24
+      ZoneId:
+        Ref: ZoneId
+    Metadata:
+      'ALIYUN::ROS::Designer':
+        id: dae2dd74-1b30-4975-8b70-4877f4c2d9d3
   WebServer:
     Type: 'ALIYUN::ECS::Instance'
     Properties:
-      InternetMaxBandwidthOut: 80
-      IoOptimized: optimized
-      VpcId:
-        'Fn::GetAtt':
-          - EcsVpc
-          - VpcId
       UserData:
         'Fn::Replace':
           - ros-notify:
@@ -346,29 +375,35 @@ Resources:
                   echo \?\>  >>  /usr/share/nginx/html/test.php 
                 - |
                   ros-notify -d '{"data" : "Install LNMP stack."}'
-      SecurityGroupId:
-        Ref: EcsSecurityGroup
-      VSwitchId:
-        Ref: EcsVSwitch
-      ImageId:
-        Ref: ImageId
-      InstanceType:
-        Ref: InstanceType
       SystemDiskCategory:
         Ref: SystemDiskCategory
+      VpcId:
+        'Fn::GetAtt':
+          - EcsVpc
+          - VpcId
+      SecurityGroupId:
+        Ref: EcsSecurityGroup
+      ImageId:
+        Ref: ImageId
+      InternetMaxBandwidthOut: 80
+      IoOptimized: optimized
+      VSwitchId:
+        Ref: EcsVSwitch
       Password:
         Ref: InstancePassword
+      InstanceType:
+        Ref: InstanceType
     Metadata:
       'ALIYUN::ROS::Designer':
         id: 0af5b81e-0e55-4e6a-ba96-45cf7a730510
   WebServerWaitCondition:
+    DependsOn: WebServer
     Type: 'ALIYUN::ROS::WaitCondition'
     Properties:
-      Timeout: 1800
       Count: 1
       Handle:
         Ref: WebServerConditionHandle
-    DependsOn: WebServer
+      Timeout: 1800
     Metadata:
       'ALIYUN::ROS::Designer':
         id: b528acf3-d6df-43bd-b17e-a22cd32f72e7
@@ -379,43 +414,73 @@ Resources:
     Metadata:
       'ALIYUN::ROS::Designer':
         id: 598ced8b-0ba4-40a8-a781-1d48e26ca15f
-  EcsSecurityGroup:
-    Type: 'ALIYUN::ECS::SecurityGroup'
-    Properties:
-      VpcId:
-        Ref: EcsVpc
-      SecurityGroupIngress:
-        - PortRange: '-1/-1'
-          Priority: 1
-          SourceCidrIp: 0.0.0.0/0
-          IpProtocol: all
-          NicType: intranet
-      SecurityGroupEgress:
-        - PortRange: '-1/-1'
-          Priority: 1
-          IpProtocol: all
-          DestCidrIp: 0.0.0.0/0
-          NicType: intranet
-    Metadata:
-      'ALIYUN::ROS::Designer':
-        id: 7a621d9a-c803-4121-ba09-30dc9a417423
-Outputs:
-  NginxWebsiteURL:
-    Description: URL for newly created Nginx home page.
-    Value:
-      'Fn::Join':
-        - ''
-        - - 'http://'
-          - 'Fn::GetAtt':
-              - WebServer
-              - PublicIp
-          - ':80/test.php'
-Description:
-  zh-cn: 在1个ECS实例上部署 LNMP（Linux+Nginx+MySQL+PHP）堆栈；模板仅支持 CentOS-7。
-  en: >-
-    Deploy LNMP(Linux+Nginx+MySQL+PHP) stack on 1 ECS instance. *** WARNING ***
-    Only support CentOS-7.
 Metadata:
+  'ALIYUN::ROS::Designer':
+    dae2dd74-1b30-4975-8b70-4877f4c2d9d3:
+      embeds:
+        - 0af5b81e-0e55-4e6a-ba96-45cf7a730510
+      position:
+        'y': 123
+        x: 347
+      z: 1
+      size:
+        width: 122
+        height: 151
+    a828cca7-7ef3-4441-b51d-1ed7c419ad0d:
+      source:
+        id: b528acf3-d6df-43bd-b17e-a22cd32f72e7
+      z: 1
+      target:
+        id: ec1625d7-b79b-496d-ba3a-5c46be0c1181
+    0af5b81e-0e55-4e6a-ba96-45cf7a730510:
+      position:
+        'y': 163
+        x: 386
+      z: 2
+      size:
+        width: 60
+        height: 60
+    7a621d9a-c803-4121-ba09-30dc9a417423:
+      position:
+        'y': 163
+        x: 229
+      z: 1
+      size:
+        width: 60
+        height: 60
+    598ced8b-0ba4-40a8-a781-1d48e26ca15f:
+      embeds:
+        - dae2dd74-1b30-4975-8b70-4877f4c2d9d3
+        - 7a621d9a-c803-4121-ba09-30dc9a417423
+      position:
+        'y': 50
+        x: 192
+      z: 0
+      size:
+        width: 318.0537109375
+        height: 314
+    05871fb7-6c4d-4dc1-abb9-084ad7c14d1c:
+      source:
+        id: 0af5b81e-0e55-4e6a-ba96-45cf7a730510
+      z: 1
+      target:
+        id: 7a621d9a-c803-4121-ba09-30dc9a417423
+    ec1625d7-b79b-496d-ba3a-5c46be0c1181:
+      position:
+        'y': 98
+        x: 567
+      z: 0
+      size:
+        width: 60
+        height: 60
+    b528acf3-d6df-43bd-b17e-a22cd32f72e7:
+      position:
+        'y': 252
+        x: 567
+      z: 0
+      size:
+        width: 60
+        height: 60
   'ALIYUN::ROS::Interface':
     ParameterGroups:
       - Parameters:
@@ -439,69 +504,3 @@ Metadata:
           default: Nginx
     TemplateTags:
       - Deploy LNMP(Linux+Nginx+MySQL+PHP) stack on 1 ECS instance.
-  'ALIYUN::ROS::Designer':
-    dae2dd74-1b30-4975-8b70-4877f4c2d9d3:
-      size:
-        width: 122
-        height: 151
-      position:
-        x: 347
-        'y': 123
-      z: 1
-      embeds:
-        - 0af5b81e-0e55-4e6a-ba96-45cf7a730510
-    598ced8b-0ba4-40a8-a781-1d48e26ca15f:
-      size:
-        width: 318.0537109375
-        height: 314
-      position:
-        x: 192
-        'y': 50
-      z: 0
-      embeds:
-        - dae2dd74-1b30-4975-8b70-4877f4c2d9d3
-        - 7a621d9a-c803-4121-ba09-30dc9a417423
-    ec1625d7-b79b-496d-ba3a-5c46be0c1181:
-      size:
-        width: 60
-        height: 60
-      position:
-        x: 567
-        'y': 98
-      z: 0
-    0af5b81e-0e55-4e6a-ba96-45cf7a730510:
-      size:
-        width: 60
-        height: 60
-      position:
-        x: 386
-        'y': 163
-      z: 2
-    b528acf3-d6df-43bd-b17e-a22cd32f72e7:
-      size:
-        width: 60
-        height: 60
-      position:
-        x: 567
-        'y': 252
-      z: 0
-    7a621d9a-c803-4121-ba09-30dc9a417423:
-      size:
-        width: 60
-        height: 60
-      position:
-        x: 229
-        'y': 163
-      z: 1
-    05871fb7-6c4d-4dc1-abb9-084ad7c14d1c:
-      source:
-        id: 0af5b81e-0e55-4e6a-ba96-45cf7a730510
-      target:
-        id: 7a621d9a-c803-4121-ba09-30dc9a417423
-      z: 1
-    a828cca7-7ef3-4441-b51d-1ed7c419ad0d:
-      source:
-        id: b528acf3-d6df-43bd-b17e-a22cd32f72e7
-      target:
-        id: ec1625d7-b79b-496d-ba3a-5c46be0c1181
-      z: 1
