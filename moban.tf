@@ -19,4 +19,3 @@ provider "alicloud" {
         secret_key = "amvPoLc2PTnxLqfoUU7EGT2QenAtcr"
         region = "cn-hangzhou"
 }
-~    
