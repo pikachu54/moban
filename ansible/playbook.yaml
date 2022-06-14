@@ -1,18 +1,101 @@
-- name: play to setup web server
- hosts: all
- tasks:
- - name: latest httpd version installed
- yum:
- name: httpd
- state: latest
- 
- - name: correct index.html is present
- copy:
- src: files/index.html
- dest: /var/www/html/index.html
- 
- - name: start httpd service
- service:
- name: httpd
- state: started
- enabled: true
+---
+- hosts: test1
+  tasks: 
+    - name: install packages
+       yum: name=openssl-devel,zlib-devel,pcre-devel state=installed
+    - name: groupadd
+      group: name=nginx system=yes
+    - name: useradd
+      user: name=nginx system=yes groups=nginx
+    - name: copy nginx
+      copy: src=/root/nginx-1.14.0.tar.gz dest=/root/nginx-1.14.0.tar.gz
+    - name: tar zxf nginx
+      shell: tar zxf /root/nginx-1.14.0.tar.gz
+    - name: cofigure
+      shell: chdir=/root/nginx-1.14.0 ./configure --prefix=/usr/local/nginx --user=nginx --group=nginx --with-http_ssl_module --with-http_addition_module --with-http_sub_module --with-http_dav_module --with-http_stub_status_module --with-pcre
+    - name: make & install
+      shell: chdir=/root/nginx-1.14.0 make && make install
+    - name: link
+      shell: ln -s /usr/local/nginx/sbin/nginx /usr/local/sbin
+    - name: start nginx
+      shell: nginx
+    - name: install packages(PHP)
+      yum: name=libxml2-devel,libcurl-devel,bzip2-devel
+    - name: copy libmcrypt
+      copy: src=/root/libmcrypt-2.5.7.tar.gz dest=/root/libmcrypt-2.5.7.tar.gz
+    - name: tar libmcrypt
+      shell: tar zxf /root/libmcrypt-2.5.7.tar.gz
+    - name: ./config
+      shell: chdir=/root/libmcrypt-2.5.7 ./configure --prefix=/usr/local/libmcrypt && make && make install
+    - name: copy php
+      copy: src=/root/php-5.6.27.tar.gz dest=/root/php-5.6.27.tar.gz
+    - name: tar zxf php
+      shell: tar zxf /root/php-5.6.27.tar.gz
+    - name: ./configure
+      shell: chdir=/root/php-5.6.27 ./configure --prefix=/usr/local/php5.6 --with-mysql=mysqlnd --with-pdo-mysql=mysqlnd --with-mysqli=mysqlnd --with-openssl --enable-fpm --enable-sockets --enable-sysvshm --enable-mbstring --with-freetype-dir --with-jpeg-dir --with-png-dir --with-zlib --with-libxml-dir=/usr --enable-xml --with-mhash --with-mcrypt=/usr/local/libmcrypt --with-config-file-path=/etc --with-config-file-scan-dir=/etc/php.d --with-bz2 --enable-maintainer-zts
+    - name: make & install
+      shell: chdir=/root/php-5.6.27 make && make install
+    - name: cp ini
+      shell: chdir=/root/php-5.6.27 cp php.ini-production /etc/php.ini
+    - name: cp init.d
+      shell: chdir=/root/php-5.6.27 cp sapi/fpm/init.d.php-fpm /etc/init.d/php-fpm
+    - name: add chkconfig
+      shell: chkconfig --add php-fpm
+    - name: on php-fpm
+      shell: chkconfig php-fpm on
+    - name: cp to 144
+      copy: src=/root/php-fpm.conf dest=/usr/local/php5.6/etc/php-fpm.conf
+    - name: chmod +x
+      shell: chmod +x /etc/init.d/php-fpm
+    - name: start php-fpm
+      shell: /etc/init.d/php-fpm start
+- hosts: test2
+  tasks:
+    - name: copy mysqlbinary(MYSQL)
+      copy: src=/root/mysql-5.7.22-linux-glibc2.12-x86_64.tar.gz dest=/root/mysql-5.7.22-linux-glibc2.12-x86_64.tar.gz
+    - name: remove mariadb
+      shell: rpm -e mariadb-libs --nodeps
+    - name: groupadd
+      group: name=mysql system=yes
+    - name: useradd
+      user: name=mysql system=yes groups=mysql
+    - name: tar zxf mysql
+      shell: tar zxf /root/mysql-5.7.22-linux-glibc2.12-x86_64.tar.gz
+    - name: rename mysql
+      shell: mv mysql-5.7.22-linux-glibc2.12-x86_64 /usr/local/mysql
+    - name: mkdir data
+      file: name=/usr/local/mysql/data state=directory
+    - name: chown
+      file: name=/usr/local/mysql owner=mysql group=mysql
+    - name: vi /etc/my.cnf
+      copy: src=/root/my.cnf dest=/etc/my.cnf
+    - name: link
+      shell: ln -s /usr/local/mysql/bin/* /usr/local/bin/
+    - name: initialize
+      shell: mysqld --initialize --user=mysql --basedir=/usr/local/mysql --datadir=/usr/local/mysql/data
+    - name: cp mysqld
+      shell: cp /usr/local/mysql/support-files/mysql.server /etc/init.d/mysqld
+    - name: start
+      shell: /etc/init.d/mysqld start
+    - name: rpwd
+      script: /root/repwd.sh
+    - name: chown
+      shell: chown -R mysql:mysql /usr/local/mysql
+- hosts: test1
+  tasks:
+    - name: modify nginx.conf
+      copy: src=/root/nginx.conf dest=/usr/local/nginx/conf/nginx.conf
+    - name: stop nginx
+      shell: nginx -s stop
+    - name: start nginx
+      shell: nginx
+    - name: add index.php
+      copy: src=/root/index.php dest=/usr/local/nginx/html/index.php
+    - name: add mysql.php
+      copy: src=/root/mysql.php dest=/usr/local/nginx/html/mysql.php
+    - name: add firewall-cmd
+      shell: firewall-cmd --add-port=80/tcp --permanent
+    - name: reload firewalld
+      shell: firewall-cmd --reload
+    - name: chown nginx
+      shell: chown nginx:nginx /usr/local/nginx
