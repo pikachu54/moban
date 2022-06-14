@@ -1,100 +1,154 @@
-- hosts: test1
-  tasks: 
-    - name: install packages
-       yum: name=openssl-devel,zlib-devel,pcre-devel state=installed
-    - name: groupadd
-      group: name=nginx system=yes
-    - name: useradd
-      user: name=nginx system=yes groups=nginx
-    - name: copy nginx
-      copy: src=/root/nginx-1.14.0.tar.gz dest=/root/nginx-1.14.0.tar.gz
-    - name: tar zxf nginx
-      shell: tar zxf /root/nginx-1.14.0.tar.gz
-    - name: cofigure
-      shell: chdir=/root/nginx-1.14.0 ./configure --prefix=/usr/local/nginx --user=nginx --group=nginx --with-http_ssl_module --with-http_addition_module --with-http_sub_module --with-http_dav_module --with-http_stub_status_module --with-pcre
-    - name: make & install
-      shell: chdir=/root/nginx-1.14.0 make && make install
-    - name: link
-      shell: ln -s /usr/local/nginx/sbin/nginx /usr/local/sbin
-    - name: start nginx
-      shell: nginx
-    - name: install packages(PHP)
-      yum: name=libxml2-devel,libcurl-devel,bzip2-devel
-    - name: copy libmcrypt
-      copy: src=/root/libmcrypt-2.5.7.tar.gz dest=/root/libmcrypt-2.5.7.tar.gz
-    - name: tar libmcrypt
-      shell: tar zxf /root/libmcrypt-2.5.7.tar.gz
-    - name: ./config
-      shell: chdir=/root/libmcrypt-2.5.7 ./configure --prefix=/usr/local/libmcrypt && make && make install
-    - name: copy php
-      copy: src=/root/php-5.6.27.tar.gz dest=/root/php-5.6.27.tar.gz
-    - name: tar zxf php
-      shell: tar zxf /root/php-5.6.27.tar.gz
-    - name: ./configure
-      shell: chdir=/root/php-5.6.27 ./configure --prefix=/usr/local/php5.6 --with-mysql=mysqlnd --with-pdo-mysql=mysqlnd --with-mysqli=mysqlnd --with-openssl --enable-fpm --enable-sockets --enable-sysvshm --enable-mbstring --with-freetype-dir --with-jpeg-dir --with-png-dir --with-zlib --with-libxml-dir=/usr --enable-xml --with-mhash --with-mcrypt=/usr/local/libmcrypt --with-config-file-path=/etc --with-config-file-scan-dir=/etc/php.d --with-bz2 --enable-maintainer-zts
-    - name: make & install
-      shell: chdir=/root/php-5.6.27 make && make install
-    - name: cp ini
-      shell: chdir=/root/php-5.6.27 cp php.ini-production /etc/php.ini
-    - name: cp init.d
-      shell: chdir=/root/php-5.6.27 cp sapi/fpm/init.d.php-fpm /etc/init.d/php-fpm
-    - name: add chkconfig
-      shell: chkconfig --add php-fpm
-    - name: on php-fpm
-      shell: chkconfig php-fpm on
-    - name: cp to 144
-      copy: src=/root/php-fpm.conf dest=/usr/local/php5.6/etc/php-fpm.conf
-    - name: chmod +x
-      shell: chmod +x /etc/init.d/php-fpm
-    - name: start php-fpm
-      shell: /etc/init.d/php-fpm start
-- hosts: test2
+- hosts: web
+  remote_user: root
   tasks:
-    - name: copy mysqlbinary(MYSQL)
-      copy: src=/root/mysql-5.7.22-linux-glibc2.12-x86_64.tar.gz dest=/root/mysql-5.7.22-linux-glibc2.12-x86_64.tar.gz
-    - name: remove mariadb
-      shell: rpm -e mariadb-libs --nodeps
-    - name: groupadd
-      group: name=mysql system=yes
+    - name: unarchive package
+      unarchive: src=/opt/nginx-1.17.2.tar.gz dest=/opt
+    - name: yum rely on
+      yum: name=gcc,gcc-c++,pcre-devel,openssl-devel,zlib-devel state=installed
     - name: useradd
-      user: name=mysql system=yes groups=mysql
-    - name: tar zxf mysql
-      shell: tar zxf /root/mysql-5.7.22-linux-glibc2.12-x86_64.tar.gz
-    - name: rename mysql
-      shell: mv mysql-5.7.22-linux-glibc2.12-x86_64 /usr/local/mysql
-    - name: mkdir data
-      file: name=/usr/local/mysql/data state=directory
-    - name: chown
-      file: name=/usr/local/mysql owner=mysql group=mysql
-    - name: vi /etc/my.cnf
-      copy: src=/root/my.cnf dest=/etc/my.cnf
-    - name: link
-      shell: ln -s /usr/local/mysql/bin/* /usr/local/bin/
-    - name: initialize
-      shell: mysqld --initialize --user=mysql --basedir=/usr/local/mysql --datadir=/usr/local/mysql/data
-    - name: cp mysqld
-      shell: cp /usr/local/mysql/support-files/mysql.server /etc/init.d/mysqld
-    - name: start
-      shell: /etc/init.d/mysqld start
-    - name: rpwd
-      script: /root/repwd.sh
-    - name: chown
-      shell: chown -R mysql:mysql /usr/local/mysql
-- hosts: test1
+      user: name=nginx shell=/sbin/nologin
+    - name: shell configure
+      shell: ./configure --prefix=/usr/local/nginx --user=nginx --group=nginx --with-http_ssl_module --with-http_stub_status_module --with-http_gzip_static_module  && make && make install
+      args:
+        chdir: /opt/nginx-1.17.2
+    - name: file
+      file: src=/usr/local/nginx/sbin/nginx dest=/usr/sbin/nginx state=link
+    - name: shell  echo  nginx
+      shell: echo "#!/bin/bash" > /etc/init.d/nginx && chmod +x /etc/init.d/nginx
+    - name: lineinfile add nginx line1
+      lineinfile: dest=/etc/init.d/nginx line="#chkconfig:2345 88 88"
+    - name: lineinfile add nginx line2
+      lineinfile: dest=/etc/init.d/nginx line='a="/usr/local/nginx/sbin/nginx"'
+    - name: lineinfile add nginx line3
+      lineinfile: dest=/etc/init.d/nginx line='b="/usr/local/nginx/logs/nginx.pid"'
+    - name: lineinfile add nginx line4
+      lineinfile: dest=/etc/init.d/nginx line='case "$1" in'
+    - name: lineinfile add nginx line5
+      lineinfile: dest=/etc/init.d/nginx line='start)'
+    - name: lineinfile add nginx line6
+      lineinfile: dest=/etc/init.d/nginx line='$a'
+    - name: lineinfile add nginx line7
+      lineinfile: dest=/etc/init.d/nginx line='echo "starting...       ok";;'
+    - name: lineinfile add nginx line8
+      lineinfile: dest=/etc/init.d/nginx line='stop)'
+    - name: lineinfile add nginx line9
+      lineinfile: dest=/etc/init.d/nginx line='kill -s QUIT $(cat $b)'
+    - name: lineinfile add nginx line10
+      lineinfile: dest=/etc/init.d/nginx line='echo "stoping...        ok";;'
+    - name: lineinfile add nginx line11
+      lineinfile: dest=/etc/init.d/nginx line='reload)'
+    - name: lineinfile add nginx line12
+      lineinfile: dest=/etc/init.d/nginx line='kill -s HUP $(cat $b)'
+    - name: lineinfile add nginx line13
+      lineinfile: dest=/etc/init.d/nginx line='echo "reloading...      ok";;'
+    - name: lineinfile add nginx line14
+      lineinfile: dest=/etc/init.d/nginx line=' restart)'
+    - name: lineinfile add nginx line15
+      lineinfile: dest=/etc/init.d/nginx line='$0 stop'
+    - name: lineinfile add nginx line16
+      lineinfile: dest=/etc/init.d/nginx line='$0 start ;;'
+    - name: lineinfile add nginx line17
+      lineinfile: dest=/etc/init.d/nginx line='esac'
+    - name: lineinfile add nginx line18
+      lineinfile: dest=/etc/init.d/nginx line='exit 0'
+    - name: shell chkconfig
+      shell: chkconfig --add nginx
+    - name: service
+      service: name=nginx state=restarted
+
+- hosts: db
+  remote_user: root
   tasks:
-    - name: modify nginx.conf
-      copy: src=/root/nginx.conf dest=/usr/local/nginx/conf/nginx.conf
-    - name: stop nginx
-      shell: nginx -s stop
-    - name: start nginx
-      shell: nginx
-    - name: add index.php
-      copy: src=/root/index.php dest=/usr/local/nginx/html/index.php
-    - name: add mysql.php
-      copy: src=/root/mysql.php dest=/usr/local/nginx/html/mysql.php
-    - name: add firewall-cmd
-      shell: firewall-cmd --add-port=80/tcp --permanent
-    - name: reload firewalld
-      shell: firewall-cmd --reload
-    - name: chown nginx
-      shell: chown nginx:nginx /usr/local/nginx
+    - name: unarchive package
+      unarchive: src=/opt/mysql-5.6.45.tar.gz dest=/opt/
+    - name: yum rely on
+      yum: name=gcc,gcc-c++,bison,cmake,ncurses-devel  state=installed
+    - name: useradd
+      user: name=mysql shell=/sbin/nologin
+    - name: shell cmake
+      shell: cmake -DCMAKE_INSTALL_PREFIX=/usr/local/mysql -DDEFAULT_CHARSET=utf8 -DDEFAULT_COLLATION=utf8_general_ci -DWITH_EXTRA_CHARSETS=all -DWITH_MYISAM_STORAGE_ENGINE=1 -DSYSCONFDIR=/etc && make && make install
+      args:
+        chdir: /opt/mysql-5.6.45
+    - name: file link libmysqlclient
+      file: src=/usr/local/mysql/lib/libmysqlclient.so.18 dest=/usr/local/lib/libmysqlclient.so.18 state=link
+    - name: file link mysql
+      file: src=/usr/local/mysql/bin/mysql dest=/usr/bin/mysql state=link
+    - name: file link mysql
+      file: src=/usr/local/mysql/bin/mysqladmin dest=/usr/bin/mysqladmin state=link
+    - name: copy my.cnf
+      copy: src=/opt/mysql-5.6.45/support-files/my-large.cnf dest=/etc/my.cnf remote_src=yes
+    - name: copy mysqld
+      copy: src=/opt/mysql-5.6.45/support-files/mysql.server dest=/etc/init.d/mysqld remote_src=yes
+    - name: lineinfile basedir
+      lineinfile: dest=/etc/init.d/mysqld line='basedir=/usr/local/mysql'
+    - name: lineinfile datadir
+      lineinfile: dest=/etc/init.d/mysqld line='datadir=/usr/local/mysql/data'
+    - name: file Modify the properties
+      file: path=/etc/init.d/mysqld mode=0755 state=file
+    - name: shell defaults user
+      shell: /usr/local/mysql/scripts/mysql_install_db --defaults-file=/etc/my.cnf --basedir=/usr/local/mysql --datadir=/usr/local/mysql/data --user=mysql
+      args:
+        chdir: /opt/mysql-5.6.45/support-files
+    - name: shell chkconfig
+      shell: chkconfig --add mysqld
+    - name: service
+      service: name=mysqld state=started
+    - name: shell mysqladmin
+      shell: mysqladmin -uroot password 123456
+
+
+- hosts: web
+  remote_user: root
+  tasks:
+    - name: yum
+      yum: name=gcc,gcc-c++,gd,libjpeg-devel,libpng-devel,zlib-devel,openssl-devel,pcre-devel,libxml2-devel
+    - name: unarchive
+      unarchive: src=/opt/php-7.2.21.tar.gz dest=/opt/
+    - name: shell configure
+      shell: ./configure --prefix=/usr/local/php --with-config-file-path=/usr/local/php --with-mysqli=/usr/local/mysql/bin/mysql_config --with-pdo-mysql=/usr/local/mysql --enable-mbstring --with-gd --with-zlib --with-jpeg-dir=/usr/lib --enable-fpm && make && make install
+      args:
+        chdir: /opt/php-7.2.21
+    - name: copy php.ini
+      copy: src=/opt/php-7.2.21/php.ini-development dest=/usr/local/php/php.ini remote_src=yes
+    - name: replace
+      replace: path=/usr/local/php/php.ini regexp='short_open_tag = Off' replace='short_open_tag = On'
+    - name: copy php-fpm
+      copy: src=/opt/php-7.2.21/sapi/fpm/init.d.php-fpm dest=/etc/init.d/php-fpm remote_src=yes
+    - name: file modify the properties
+      file: path=/etc/init.d/php-fpm mode=0755 state=file
+    - name: copy php-fpm.conf
+      copy: src=/usr/local/php/etc/php-fpm.conf.default dest=/usr/local/php/etc/php-fpm.conf remote_src=yes
+    - name: replace 
+      replace: path=/usr/local/php/etc/php-fpm.conf regexp=';pid = run/php-fpm.pid' replace='pid = run/php-fpm.pid'
+    - name: replace 
+      replace: path=/usr/local/php/etc/php-fpm.conf regexp=';emergency_restart_interval = 10' replace='emergency_restart_interval = 20s'
+    - name: replace
+      replace: path=/usr/local/php/etc/php-fpm.conf regexp=';error_log = log/php-fpm.log' replace='error_log = log/php-fpm.log'
+    - name: replace
+      replace: path=/usr/local/php/etc/php-fpm.conf regexp=';emergency_restart_threshold = 0' replace='emergency_restart_threshold = 10'
+    - name: replace
+      replace: path=/usr/local/php/etc/php-fpm.conf regexp=';process.max = 128' replace='process.max = 128'
+    - name: replace
+      replace: path=/usr/local/php/etc/php-fpm.conf regexp=';rlimit_files = 1024' replace='rlimit_files = 1024'
+    - name: replace
+      replace: path=/usr/local/php/etc/php-fpm.conf regexp=';events.mechanism = epoll' replace='events.mechanism = epoll'
+    - name: copy www.conf
+      copy: src=/usr/local/php/etc/php-fpm.d/www.conf.default dest=/usr/local/php/etc/php-fpm.d/www.conf remote_src=yes
+    - name: replace
+      replace: path=/usr/local/nginx/conf/nginx.conf regexp='            index  index.html index.htm;' replace='          index index.php index.html index.htm;'
+    - name: shell sed
+      shell: sed -i '65,71 s/#/ /' /usr/local/nginx/conf/nginx.conf
+    - name: replace
+      replace: path=/usr/local/nginx/conf/nginx.conf regexp='             include        fastcgi_params;' replace='             include        fastcgi.conf;'
+    - name: shell
+      shell: /etc/init.d/php-fpm restart
+    - name: service
+      service: name=nginx state=restarted
+    - name: unarchive
+      unarchive: src=/opt/ComsenzDiscuz-DiscuzX-master.zip dest=/opt
+    - name: delete
+      shell: rm -rf /usr/local/nginx/html/*
+    - name: shell upload
+      shell: cp -r /opt/DiscuzX/upload  /usr/local/nginx/html
+    - name: file
+      file: path=/usr/local/nginx/html/upload  mode=0777 recurse=yes
