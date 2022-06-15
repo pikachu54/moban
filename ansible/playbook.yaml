@@ -1,9 +1,3 @@
-- hosts: test1
-  tasks: 
-    - name: install packages
-       yum: name=openssl-devel,zlib-devel,pcre-devel state=installed
-    - name: groupadd
-      group: name=nginx system=yes
 - hosts: web
   remote_user: root
   tasks:
